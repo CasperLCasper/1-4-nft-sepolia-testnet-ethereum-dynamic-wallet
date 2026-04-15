@@ -3,164 +3,207 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Virsburts | Secure NFT Visualizer</title>
+  <title>Dynamic Wallet Visualizer — Manifold NFT Generator</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+
   <style>
-    /* Iepriekšējais stils saglabāts, pievienotas statusa krāsas */
-    body { font-family:'Inter',Arial,sans-serif; background:#000; color:#fff; margin:0; padding:20px; overflow-x: hidden; }
-    .container { max-width:1200px; margin:auto; display:flex; flex-direction:column; align-items:center; gap:20px; }
-    canvas { width:100%; max-width:960px; border-radius:12px; border:1px solid #333; background:#000; box-shadow: 0 0 30px rgba(0,255,255,0.1); }
-    .controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-    button { padding:12px 24px; border-radius:8px; border:none; cursor:pointer; font-weight:700; transition: 0.3s; }
-    #connectBtn { background: #333; color: #fff; }
-    #mintBtn { background: linear-gradient(90deg, #00f2fe, #4facfe); color: #000; }
-    button:disabled { opacity: 0.3; cursor: not-allowed; }
-    .status-area { height: 24px; font-size: 14px; color: #0ff; margin-top: 10px; }
+    /* ATPAKAĻ TAVS ORIĢINĀLAIS STILS */
+    body { font-family:'Inter',Arial,sans-serif; background:#000; color:#fff; margin:0; padding:20px; position: relative; overflow-x: hidden; }
+    .container { max-width:1400px; margin:auto; display:flex; flex-direction:column; align-items:center; gap:12px; }
+    h1 { font-size:24px; margin:0; line-height:1; background:linear-gradient(90deg,#ffffff,#aaaaaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center; }
+    .subtitle { margin-top:4px; color:#9fb0c3; font-size:18px; text-align:center; }
     
-    /* Theme buttons */
-    .theme-selector { display:flex; gap:8px; margin-bottom:10px; }
-    .t-btn { padding:6px 12px; border:1px solid #444; background:none; color:#ccc; border-radius:4px; cursor:pointer; }
-    .t-btn.active { border-color:#0ff; color:#0ff; background:rgba(0,255,255,0.1); }
+    .theme-selector { display: flex; gap: 12px; justify-content: center; margin: 10px 0; flex-wrap: wrap; }
+    .theme-btn { padding: 8px 16px; border-radius: 20px; border: 2px solid; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s ease; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+    .theme-btn.active { background: rgba(255,255,255,0.2); box-shadow: 0 0 15px currentColor; }
+    
+    /* Tavām krāsām atbilstošie stili */
+    .theme-classic { border-color: #0ff; color: #0ff; }
+    .theme-forest { border-color: #0f0; color: #0f0; }
+    .theme-ocean { border-color: #00f; color: #00f; }
+    .theme-sunset { border-color: #ff6600; color: #ff6600; }
+    .theme-galaxy { border-color: #c026ff; color: #c026ff; }
+    .theme-rainbow { border-color: #ff00ff; color: #ff00ff; }
+    .theme-fire { border-color: #ff4400; color: #ff4400; }
+    
+    .active-style-indicator { position: fixed; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); padding: 8px 16px; border-radius: 30px; font-size: 14px; z-index: 100; border-left: 4px solid; pointer-events: none; }
+    
+    .controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+    button { padding:12px 20px; border-radius:12px; border:none; cursor:pointer; background:linear-gradient(90deg,#4a90e2,#9013fe); color:#fff; font-weight:700; font-size:16px; box-shadow:0 6px 18px rgba(0,0,0,0.45); }
+    button:disabled { background:#444; opacity:0.5; }
+    
+    .snapshot-container { width:100%; background:#000; border-radius:14px; padding:18px; position:relative; overflow: hidden; }
+    #snapshotCanvas { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background: #000; }
+    #statusMsg { font-weight:600; font-size:16px; color:#fff; text-align:center; margin: 10px 0; }
+    
+    .logo { width: 160px; height: 40px; margin-bottom: 10px; }
   </style>
 </head>
+
 <body>
+  <div class="container">
+    <header style="text-align:center;">
+       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 158.75 37.04" class="logo">
+         <text x="8.8" y="31.5" style="font-size:14.1px; font-family:'DejaVu Sans Mono'; fill:#ffffff;">V I R S B U R T S</text>
+         <rect width="3.1" height="15" x="5.9" y="3.8" style="fill:#ffffff;" />
+       </svg>
+       <h1>Dynamic Wallet Visualizer</h1>
+       <p class="subtitle">Watch your Ethereum assets come alive</p>
+    </header>
 
-<div class="container">
-  <h1>V I R S B U R T S</h1>
-  
-  <div class="theme-selector">
-    <button class="t-btn active" onclick="changeStyle('classic')">Classic</button>
-    <button class="t-btn" onclick="changeStyle('galaxy')">Galaxy</button>
-    <button class="t-btn" onclick="changeStyle('fire')">Fire</button>
-    <button class="t-btn" onclick="changeStyle('rainbow')">Rainbow</button>
+    <div class="theme-selector">
+      <button class="theme-btn theme-classic active" onclick="setTheme('classic')">⭐ CLASSIC</button>
+      <button class="theme-btn theme-forest" onclick="setTheme('forest')">🌲 FOREST</button>
+      <button class="theme-btn theme-ocean" onclick="setTheme('ocean')">🌊 OCEAN</button>
+      <button class="theme-btn theme-sunset" onclick="setTheme('sunset')">🌅 SUNSET</button>
+      <button class="theme-btn theme-galaxy" onclick="setTheme('galaxy')">✨ GALAXY</button>
+      <button class="theme-btn theme-rainbow" onclick="setTheme('rainbow')">🌈 RAINBOW</button>
+      <button class="theme-btn theme-fire" onclick="setTheme('fire')">🔥 FIRE</button>
+    </div>
+
+    <div class="controls">
+      <button id="connectBtn">Connect Wallet</button>
+      <button id="mintBtn" disabled>Generate & Mint NFT</button>
+    </div>
+
+    <div id="statusMsg">Gaidu maka pieslēgšanu...</div>
+
+    <div class="snapshot-container">
+      <canvas id="snapshotCanvas" width="1920" height="1080"></canvas>
+    </div>
   </div>
 
-  <canvas id="mainCanvas" width="1920" height="1080"></canvas>
-  
-  <div class="status-area" id="statusMsg">Gaidu maka pieslēgšanu...</div>
-
-  <div class="controls">
-    <button id="connectBtn">Connect Wallet</button>
-    <button id="mintBtn" disabled>Mint NFT (0.01 ETH)</button>
+  <div id="styleIndicator" class="active-style-indicator" style="border-left-color: #0ff;">
+    <span id="indicatorText">⭐ CLASSIC MODE - Original visualization</span>
   </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.umd.min.js"></script>
 
-<script>
-  let provider, signer, account, animRequest;
-  let particles = [];
-  let currentStyle = 'classic';
-  const canvas = document.getElementById('mainCanvas');
-  const ctx = canvas.getContext('2d');
-  const statusMsg = document.getElementById('statusMsg');
+  <script>
+    /* --- TAVS ORIĢINĀLAIS DATU SETS UN MAINĪGIE --- */
+    let provider, signer, account;
+    let particles = [], initialParticles = [], animRequest = null, frameCount = 0;
+    let currentStyle = 'classic';
+    const canvas = document.getElementById('snapshotCanvas');
+    const ctx = canvas.getContext('2d');
 
-  // --- KONFIGURĀCIJA ---
-  const CONTRACT_ADDR = "0xdae7c3da53be220889abd6ab66372318fb5eb454";
-  const ABI = ["function mint(address to, uint256 id, string uri) external payable"];
+    // Tavs Manifold līgums
+    const MANIFOLD_ADDR = "0xdae7c3da53be220889abd6ab66372318fb5eb454";
+    const ABI = ["function mint(address to, uint256 id, string uri) external payable"];
 
-  // --- VIZUALIZĀCIJAS LOĢIKA ---
-  function initParticles() {
-    particles = [];
-    for(let i=0; i<150; i++) {
-      particles.push({
-        r: Math.random() * 400 + 100,
-        a: Math.random() * Math.PI * 2,
-        s: Math.random() * 0.005 + 0.002,
-        size: Math.random() * 3 + 1
-      });
-    }
-  }
+    const STYLES = {
+      classic: { color: '#0ff', txt: '⭐ CLASSIC MODE - Original visualization' },
+      forest: { color: '#0f0', txt: '🌲 FOREST MODE - Green glow effect active' },
+      ocean: { color: '#00f', txt: '🌊 OCEAN MODE - Wave animations active' },
+      sunset: { color: '#ff6600', txt: '🌅 SUNSET MODE - Warm fire glow active' },
+      galaxy: { color: '#c026ff', txt: '✨ GALAXY MODE - Sparkle stars active' },
+      rainbow: { color: '#ff00ff', txt: '🌈 RAINBOW MODE - Color pulse active' },
+      fire: { color: '#ff4400', txt: '🔥 FIRE MODE - Fire trail effects active' }
+    };
 
-  function animate() {
-    ctx.fillStyle = 'rgba(0,0,0,0.1)';
-    ctx.fillRect(0,0,1920,1080);
-    
-    particles.forEach(p => {
-      p.a += p.s;
-      const x = 960 + Math.cos(p.a) * p.r;
-      const y = 540 + Math.sin(p.a) * p.r;
-      
-      ctx.beginPath();
-      ctx.arc(x, y, p.size, 0, Math.PI*2);
-      
-      if(currentStyle === 'galaxy') {
-        ctx.fillStyle = '#c026ff';
-        ctx.shadowBlur = 10; ctx.shadowColor = '#c026ff';
-      } else if(currentStyle === 'fire') {
-        ctx.fillStyle = '#ff4400';
-      } else {
-        ctx.fillStyle = '#0ff';
+    /* --- TAVA ORIĢINĀLĀ LOGA UN DAĻIŅU LOĢIKA --- */
+    function initParticlesOnce() {
+      initialParticles = [];
+      for (let i = 0; i < 200; i++) {
+        initialParticles.push({
+          radius: 100 + Math.random() * 400,
+          angle: Math.random() * Math.PI * 2,
+          speed: 0.002 + Math.random() * 0.008,
+          r: 2 + Math.random() * 4,
+          hue: 200
+        });
       }
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    });
-    animRequest = requestAnimationFrame(animate);
-  }
-
-  function changeStyle(s) {
-    currentStyle = s;
-    document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
-  }
-
-  // --- DROŠA MINTĒŠANAS PLŪSMA ---
-  async function startMintProcess() {
-    const mintBtn = document.getElementById('mintBtn');
-    mintBtn.disabled = true;
-    statusMsg.innerText = "Sagatavo bildi un augšupielādē serverī...";
-
-    try {
-      // 1. Snapshot no Canvas
-      const imageData = canvas.toDataURL('image/png');
-
-      // 2. Sūtam uz Backend (Tavs API)
-      const response = await fetch('/api/prepare-nft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: imageData,
-          address: account,
-          style: currentStyle
-        })
-      });
-
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error);
-
-      statusMsg.innerText = "IPFS gatavs. Apstiprini darījumu makā...";
-
-      // 3. Īstais Mint izsaukums ar datiem, ko iedeva serveris
-      const contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
-      const tx = await contract.mint(account, Date.now(), data.uri, {
-        value: ethers.parseEther("0.01")
-      });
-
-      statusMsg.innerText = "Darījums nosūtīts! Gaidām blokķēdi...";
-      await tx.wait();
-      statusMsg.innerText = "Apsveicam! NFT ir veiksmīgi izkalts.";
-
-    } catch (err) {
-      console.error(err);
-      statusMsg.innerText = "Kļūda: " + err.message;
-      mintBtn.disabled = false;
+      particles = initialParticles.map(p => ({ ...p }));
+      if (animRequest) cancelAnimationFrame(animRequest);
+      animate();
     }
-  }
 
-  // --- CONNECT ---
-  document.getElementById('connectBtn').onclick = async () => {
-    if(!window.ethereum) return alert("Instalē MetaMask!");
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    account = await signer.getAddress();
-    document.getElementById('connectBtn').innerText = account.slice(0,6) + "...";
-    document.getElementById('mintBtn').disabled = false;
-    initParticles();
-    animate();
-    statusMsg.innerText = "Maks pieslēgts. Izvēlies stilu un spied Mint!";
-  };
+    function animate() {
+      frameCount++;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx.fillRect(0, 0, 1920, 1080);
 
-  document.getElementById('mintBtn').onclick = startMintProcess;
-</script>
+      particles.forEach((p, i) => {
+        p.angle += p.speed;
+        const x = 960 + Math.cos(p.angle) * p.radius;
+        const y = 540 + Math.sin(p.angle) * p.radius;
+
+        // Stilistiskās krāsu izmaiņas
+        if (currentStyle === 'rainbow') p.hue = (frameCount + i) % 360;
+        else if (currentStyle === 'forest') p.hue = 120;
+        else if (currentStyle === 'ocean') p.hue = 220;
+        else if (currentStyle === 'fire') p.hue = 15;
+        else if (currentStyle === 'galaxy') p.hue = 280;
+
+        ctx.beginPath();
+        ctx.arc(x, y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, 0.9)`;
+        
+        if(currentStyle === 'galaxy') {
+          ctx.shadowBlur = 10; ctx.shadowColor = `hsla(${p.hue}, 80%, 60%, 0.8)`;
+        } else { ctx.shadowBlur = 0; }
+        
+        ctx.fill();
+      });
+      animRequest = requestAnimationFrame(animate);
+    }
+
+    function setTheme(s) {
+      currentStyle = s;
+      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('styleIndicator').style.borderLeftColor = STYLES[s].color;
+      document.getElementById('indicatorText').innerText = STYLES[s].txt;
+    }
+
+    /* --- SAVIENOJUMS UN MINT (UZLABOTS, BET TAVS) --- */
+    async function connect() {
+      if (!window.ethereum) return alert("Instalē MetaMask!");
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      account = await signer.getAddress();
+      document.getElementById('connectBtn').innerText = "Connected: " + account.slice(0,6);
+      document.getElementById('mintBtn').disabled = false;
+      initParticlesOnce();
+    }
+
+    async function mintNFT() {
+      const btn = document.getElementById('mintBtn');
+      const status = document.getElementById('statusMsg');
+      btn.disabled = true;
+      status.innerText = "Gatavoju IPFS datus caur API...";
+
+      try {
+        const image = canvas.toDataURL('image/png');
+        
+        // ŠEIT NOTIEK TAVA KRITIKA - DROŠS BACKEND IZSaukums
+        const response = await fetch('/api/prepare-nft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image, address: account, style: currentStyle })
+        });
+        
+        const data = await response.json();
+        if(!data.uri) throw new Error("Serveris neatgrieza IPFS saiti");
+
+        status.innerText = "IPFS Gatavs! Apstiprini mintošanu makā...";
+
+        const contract = new ethers.Contract(MANIFOLD_ADDR, ABI, signer);
+        const tx = await contract.mint(account, Date.now(), data.uri, {
+          value: ethers.parseEther("0.01")
+        });
+
+        await tx.wait();
+        status.innerText = "NFT veiksmīgi izkalts!";
+      } catch (e) {
+        status.innerText = "Kļūda: " + e.message;
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('connectBtn').onclick = connect;
+    document.getElementById('mintBtn').onclick = mintNFT;
+  </script>
 </body>
 </html>

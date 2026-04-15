@@ -3,457 +3,164 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dynamic Wallet Visualizer — Manifold NFT Generator</title>
-
+  <title>Virsburts | Secure NFT Visualizer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
-
   <style>
-    body { font-family:'Inter',Arial,sans-serif; background:#000; color:#fff; margin:0; padding:20px; position: relative; overflow-x: hidden; }
-    .container { max-width:1400px; margin:auto; display:flex; flex-direction:column; align-items:center; gap:12px; }
-    h1 { font-size:24px; margin:0; line-height:1; background:linear-gradient(90deg,#ffffff,#aaaaaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center; }
-    .subtitle { margin-top:4px; color:#9fb0c3; font-size:18px; text-align:center; }
-    
-    .theme-selector {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin: 10px 0;
-      flex-wrap: wrap;
-    }
-    .theme-btn {
-      padding: 8px 16px;
-      border-radius: 20px;
-      border: 2px solid;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all 0.2s ease;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(4px);
-    }
-    .theme-btn:hover { transform: translateY(-2px) scale(1.05); }
-    .theme-btn.active { background: rgba(255,255,255,0.2); box-shadow: 0 0 15px currentColor; transform: scale(1.02); }
-    .theme-btn.active::before { content: '✓ '; font-weight: bold; }
-    .theme-classic { border-color: #0ff; color: #0ff; }
-    .theme-forest { border-color: #0f0; color: #0f0; }
-    .theme-ocean { border-color: #00f; color: #00f; }
-    .theme-sunset { border-color: #ff6600; color: #ff6600; }
-    .theme-galaxy { border-color: #c026ff; color: #c026ff; }
-    .theme-rainbow { border-color: #ff00ff; color: #ff00ff; }
-    .theme-fire { border-color: #ff4400; color: #ff4400; }
-    
-    .active-style-indicator {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(10px);
-      padding: 8px 16px;
-      border-radius: 30px;
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 100;
-      border-left: 4px solid;
-      pointer-events: none;
-      font-family: monospace;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    
+    /* Iepriekšējais stils saglabāts, pievienotas statusa krāsas */
+    body { font-family:'Inter',Arial,sans-serif; background:#000; color:#fff; margin:0; padding:20px; overflow-x: hidden; }
+    .container { max-width:1200px; margin:auto; display:flex; flex-direction:column; align-items:center; gap:20px; }
+    canvas { width:100%; max-width:960px; border-radius:12px; border:1px solid #333; background:#000; box-shadow: 0 0 30px rgba(0,255,255,0.1); }
     .controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-    button { padding:12px 20px; border-radius:12px; border:none; cursor:pointer; background:linear-gradient(90deg,#4a90e2,#9013fe); color:#fff; font-weight:700; font-size:16px; box-shadow:0 6px 18px rgba(0,0,0,0.45); transition: transform 0.2s, box-shadow 0.2s; }
-    button:disabled { background:#444; cursor:not-allowed; opacity:0.5; }
-    button:hover:not(:disabled) { transform:translateY(-4px) scale(1.03); box-shadow:0 8px 22px rgba(0,0,0,0.65); }
+    button { padding:12px 24px; border-radius:8px; border:none; cursor:pointer; font-weight:700; transition: 0.3s; }
+    #connectBtn { background: #333; color: #fff; }
+    #mintBtn { background: linear-gradient(90deg, #00f2fe, #4facfe); color: #000; }
+    button:disabled { opacity: 0.3; cursor: not-allowed; }
+    .status-area { height: 24px; font-size: 14px; color: #0ff; margin-top: 10px; }
     
-    button.loading { opacity: 0.7; cursor: wait; transform: none !important; }
-    button.loading::after {
-      content: '';
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      margin-left: 10px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      vertical-align: middle;
-    }
-    
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
-    .generate-nft-btn { background: linear-gradient(135deg, #ffffff, #e8f4f0); color: #000; }
-    .generate-nft-btn:hover:not(:disabled) { background: linear-gradient(135deg, #d4fcec, #b8f5e0); color: #000; box-shadow: 0 8px 22px rgba(0,255,204,0.2); }
-    
-    .snapshot-container { width:100%; background:#000; border-radius:14px; padding:18px; box-shadow:0 12px 40px rgba(0,0,0,0.6); position:relative; overflow: hidden; }
-    #snapshotCanvas { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.03); display:block; margin-bottom:12px; background: #000; }
-    #recordTimer { margin-top:6px; color:#0ff; font-weight:600; font-size:16px; text-align:center; }
-    #statusContainer { position: relative; width: 100%; height: 40px; margin-top: 8px; }
-    .status { font-weight:600; font-size:16px; color:#fff; line-height:40px; text-align:center; }
-    
-    #progressBarContainer { position: absolute; top: 50%; left: 50%; width: 60%; height: 18px; background: rgba(255,255,255,0.1); border-radius: 6px; transform: translate(-50%, -50%); display: none; overflow: hidden; }
-    #progressBar { height: 100%; width: 100%; background: linear-gradient(90deg,#0ff,#4a90e2); border-radius: 6px; transform: scaleX(0); transform-origin: left center; transition: transform 0.4s ease; }
-    
-    #fullscreenIcon, #toggleInfoIcon { position:absolute; top:10px; display:flex; align-items:center; cursor:pointer; color:#0ff; background:rgba(0,0,0,0.3); border-radius:6px; padding:6px 10px; transition: background 0.2s, transform 0.2s; z-index:10; }
-    #fullscreenIcon { right:10px; }
-    #toggleInfoIcon { left:10px; }
-    #fullscreenIcon:hover, #toggleInfoIcon:hover { background:rgba(0,255,255,0.2); transform: scale(1.05); }
-    
-    #accountDisplay { width:100%; word-break:break-word; margin-top:8px; font-size:16px; text-align:center; }
-
-    #tokenListContainer {
-      display:none;
-      position:absolute;
-      top:80px;
-      left:10px;
-      max-height:150px;
-      width:90%;
-      max-width:576px;
-      background:rgba(0,0,0,0.7);
-      backdrop-filter: blur(8px);
-      border-radius:9px;
-      overflow-y:auto;
-      padding:10px;
-      font-size:14px;
-      z-index:15;
-      border: 1px solid rgba(0, 255, 255, 0.2);
-    }
-    #tokenListContainer table { width:100%; border-collapse:collapse; }
-    #tokenListContainer th, #tokenListContainer td { padding:6px 8px; text-align:left; font-size:13px; }
-    #tokenListContainer th { color:#0ff; font-weight:600; }
-    #tokenListContainer tr:nth-child(even) td { background:rgba(255,255,255,0.05); }
-    
-    .site-header { position: relative; width: 100%; min-height: 80px; }
-    .logo { position: absolute; top: 0px; left: 10px; width: 280px; height: auto; }
-    .header-text { text-align: center; padding-top: 5px; }
-    
-    @media (max-width: 768px) {
-      .logo { position: static; display: block; margin: 0 auto 20px auto; width: 140px; }
-      .header-text { padding-top: 0; }
-      .site-header { min-height: auto; }
-    }
-    
-    .ipfs-preview {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(0,0,0,0.8);
-      border: 1px solid #0ff;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 11px;
-      max-width: 300px;
-      z-index: 100;
-      display: none;
-    }
-    .ipfs-preview a { color: #0ff; word-break: break-all; }
+    /* Theme buttons */
+    .theme-selector { display:flex; gap:8px; margin-bottom:10px; }
+    .t-btn { padding:6px 12px; border:1px solid #444; background:none; color:#ccc; border-radius:4px; cursor:pointer; }
+    .t-btn.active { border-color:#0ff; color:#0ff; background:rgba(0,255,255,0.1); }
   </style>
 </head>
-
 <body>
-  <div class="container">
-    <header class="site-header">
-      <svg xmlns="http://www.w3.org/2000/svg" width="160" height="40" viewBox="0 0 158.74999 37.041668" class="logo">
-        <text xml:space="preserve" style="font-style:normal;font-weight:normal;font-size:14.1111px;line-height:1.25;font-family:sans-serif;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.264583;" x="8.8499603" y="31.493832">
-          <tspan x="8.8499603" y="31.493832" style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.1111px;font-family:'DejaVu Sans Mono';-inkscape-font-specification:'DejaVu Sans Mono';stroke-width:0.264583;fill:#ffffff;">V I R S B U R T S</tspan>
-        </text>
-        <rect style="fill:#ffffff;stroke-width:0.264583" width="3.1013243" height="15.020124" x="5.9450045" y="3.8351295" />
-      </svg>
-      <div class="header-text">
-        <h1>Dynamic Wallet Visualizer</h1>
-        <p class="subtitle">Watch your Ethereum assets come alive — Create NFT on Manifold</p>
-      </div>
-    </header>
 
-    <div class="theme-selector">
-      <button class="theme-btn theme-classic active" data-theme="classic">⭐ CLASSIC</button>
-      <button class="theme-btn theme-forest" data-theme="forest">🌲 FOREST</button>
-      <button class="theme-btn theme-ocean" data-theme="ocean">🌊 OCEAN</button>
-      <button class="theme-btn theme-sunset" data-theme="sunset">🌅 SUNSET</button>
-      <button class="theme-btn theme-galaxy" data-theme="galaxy">✨ GALAXY</button>
-      <button class="theme-btn theme-rainbow" data-theme="rainbow">🌈 RAINBOW</button>
-      <button class="theme-btn theme-fire" data-theme="fire">🔥 FIRE</button>
-    </div>
-
-    <div class="controls">
-      <button id="connectBtn">Connect Wallet</button>
-      <button id="renderBtn" disabled>Render Snapshot</button>
-      <button id="recordBtn" disabled>Record 10s HD Video</button>
-      <button id="generateNFTBtn" class="generate-nft-btn" disabled>Generate NFT</button>
-    </div>
-
-    <div id="accountDisplay">Connected account: —</div>
-    <div id="statusContainer">
-      <div id="statusMsg" class="status"></div>
-      <div id="progressBarContainer"><div id="progressBar"></div></div>
-    </div>
-    <div id="recordTimer">Recording: 0 / 10 s</div>
-
-    <div class="snapshot-container">
-      <canvas id="snapshotCanvas" width="1920" height="1080"></canvas>
-      <div id="fullscreenIcon">⤢ <span>Fullscreen</span></div>
-      <div id="toggleInfoIcon">ℹ <span>Info</span></div>
-      <div id="tokenListContainer">
-        <table>
-          <thead><tr><th>Address</th><th>Balance</th></tr></thead>
-          <tbody id="tokenListContent"></tbody>
-        </table>
-      </div>
-    </div>
+<div class="container">
+  <h1>V I R S B U R T S</h1>
+  
+  <div class="theme-selector">
+    <button class="t-btn active" onclick="changeStyle('classic')">Classic</button>
+    <button class="t-btn" onclick="changeStyle('galaxy')">Galaxy</button>
+    <button class="t-btn" onclick="changeStyle('fire')">Fire</button>
+    <button class="t-btn" onclick="changeStyle('rainbow')">Rainbow</button>
   </div>
 
-  <div id="ipfsPreview" class="ipfs-preview">
-    <strong>IPFS Links:</strong><br>
-    <span id="previewImage"></span><br>
-    <span id="previewVideo"></span><br>
-    <span id="previewMetadata"></span>
+  <canvas id="mainCanvas" width="1920" height="1080"></canvas>
+  
+  <div class="status-area" id="statusMsg">Gaidu maka pieslēgšanu...</div>
+
+  <div class="controls">
+    <button id="connectBtn">Connect Wallet</button>
+    <button id="mintBtn" disabled>Mint NFT (0.01 ETH)</button>
   </div>
+</div>
 
-  <div id="styleIndicator" class="active-style-indicator" style="border-left-color: #0ff;">
-    <span id="indicatorText">⭐ CLASSIC MODE - Original visualization</span>
-  </div>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.umd.min.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.umd.min.js"></script>
+<script>
+  let provider, signer, account, animRequest;
+  let particles = [];
+  let currentStyle = 'classic';
+  const canvas = document.getElementById('mainCanvas');
+  const ctx = canvas.getContext('2d');
+  const statusMsg = document.getElementById('statusMsg');
 
-  <script>
-    /** --- KONFIGURĀCIJA UN STILI --- **/
-    const MANIFOLD_CONTRACT_ADDRESS = "0xdae7c3da53be220889abd6ab66372318fb5eb454";
-    const MANIFOLD_ABI = [
-      "function mint(address to, uint256 tokenId, string memory uri) external payable",
-      "function mintWithETH(address to, uint256 tokenId, string memory uri) external payable",
-      "function purchase(uint256 tokenId, string memory uri) external payable"
-    ];
+  // --- KONFIGURĀCIJA ---
+  const CONTRACT_ADDR = "0xdae7c3da53be220889abd6ab66372318fb5eb454";
+  const ABI = ["function mint(address to, uint256 id, string uri) external payable"];
 
-    const ADDON_STYLES = {
-      classic: {
-        name: 'CLASSIC', color: '#0ff', indicatorText: '⭐ CLASSIC MODE - Original visualization',
-        particleColorModifier: (hue, sat, light) => ({ hue, sat, light }),
-        drawExtraEffects: () => {},
-        connectionColorModifier: (hue, sat, light, alpha) => ({ hue, sat, light, alpha })
-      },
-      forest: {
-        name: 'FOREST', color: '#0f0', indicatorText: '🌲 FOREST MODE - Green glow effect active',
-        particleColorModifier: (hue) => ({ hue: 120, sat: 80, light: 50 }),
-        drawExtraEffects: (ctx, W, H, frame, particles, cx0, cy0) => {
-          ctx.save(); ctx.globalCompositeOperation = 'lighter';
-          particles.forEach(p => {
-            const x = cx0 + Math.cos(p.angle) * p.radius;
-            const y = cy0 + Math.sin(p.angle) * p.radius;
-            ctx.beginPath(); ctx.arc(x, y, p.r * 2, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0, 255, 0, 0.1)'; ctx.fill();
-          }); ctx.restore();
-        },
-        connectionColorModifier: (h, s, l, a) => ({ hue: 120, sat: 80, light: 40, alpha: a * 0.5 })
-      },
-      ocean: {
-        name: 'OCEAN', color: '#00f', indicatorText: '🌊 OCEAN MODE - Wave animations active',
-        particleColorModifier: (hue) => ({ hue: 210, sat: 90, light: 60 }),
-        drawExtraEffects: (ctx, W, H, frame) => {
-          ctx.save(); ctx.beginPath();
-          for(let i=0; i<W; i+=20) {
-            const y = H - 50 + Math.sin(frame*0.02 + i*0.01)*20;
-            ctx.lineTo(i, y);
-          }
-          ctx.strokeStyle = 'rgba(0, 100, 255, 0.3)'; ctx.stroke(); ctx.restore();
-        },
-        connectionColorModifier: (h, s, l, a) => ({ hue: 200, sat: 100, light: 50, alpha: a })
-      },
-      sunset: {
-        name: 'SUNSET', color: '#ff6600', indicatorText: '🌅 SUNSET MODE - Warm fire glow active',
-        particleColorModifier: () => ({ hue: 20, sat: 100, light: 60 }),
-        drawExtraEffects: (ctx, W, H) => {
-          const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W/2);
-          grad.addColorStop(0, 'rgba(255, 100, 0, 0.1)'); grad.addColorStop(1, 'transparent');
-          ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
-        },
-        connectionColorModifier: (h,s,l,a) => ({ hue: 40, sat: 100, light: 50, alpha: a*1.2 })
-      },
-      galaxy: {
-        name: 'GALAXY', color: '#c026ff', indicatorText: '✨ GALAXY MODE - Sparkle stars active',
-        particleColorModifier: () => ({ hue: 280, sat: 80, light: 70 }),
-        drawExtraEffects: (ctx, W, H, frame) => {
-           for(let i=0; i<30; i++) {
-             ctx.fillStyle = `rgba(255,255,255,${Math.sin(frame*0.05 + i)})`;
-             ctx.fillRect(Math.random()*W, Math.random()*H, 2, 2);
-           }
-        },
-        connectionColorModifier: (h,s,l,a) => ({ hue: 280, sat: 100, light: 80, alpha: a*0.6 })
-      },
-      rainbow: {
-        name: 'RAINBOW', color: '#ff00ff', indicatorText: '🌈 RAINBOW MODE - Color pulse active',
-        particleColorModifier: (h, s, l, i, frame) => ({ hue: (frame + i*10) % 360, sat: 100, light: 60 }),
-        drawExtraEffects: () => {},
-        connectionColorModifier: (h,s,l,a) => ({ hue: h, sat: 100, light: 50, alpha: a })
-      },
-      fire: {
-        name: 'FIRE', color: '#ff4400', indicatorText: '🔥 FIRE MODE - Fire trail effects active',
-        particleColorModifier: () => ({ hue: 10, sat: 100, light: 50 }),
-        drawExtraEffects: (ctx, W, H, frame, particles, cx0, cy0) => {
-          ctx.save(); ctx.globalCompositeOperation = 'screen';
-          particles.forEach(p => {
-             const x = cx0 + Math.cos(p.angle - 0.1) * p.radius;
-             const y = cy0 + Math.sin(p.angle - 0.1) * p.radius;
-             ctx.beginPath(); ctx.moveTo(x,y);
-             ctx.lineTo(cx0 + Math.cos(p.angle)*p.radius, cy0 + Math.sin(p.angle)*p.radius);
-             ctx.strokeStyle = 'rgba(255, 50, 0, 0.5)'; ctx.lineWidth = p.r; ctx.stroke();
-          }); ctx.restore();
-        },
-        connectionColorModifier: (h,s,l,a) => ({ hue: 20, sat: 100, light: 50, alpha: a*1.5 })
-      }
-    };
-
-    /** --- MAINĪGIE --- **/
-    let provider, signer, account;
-    let tokens = [], ethBalance = 0, frameCount = 0;
-    let particles = [], initialParticles = [], animRequest = null;
-    let currentAddonStyle = 'classic';
-
-    const canvas = document.getElementById('snapshotCanvas');
-    const ctx = canvas.getContext('2d');
-
-    /** --- FUNKCIJAS --- **/
-
-    function resizeCanvas() {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = 1920 * dpr;
-      canvas.height = 1080 * dpr;
-      ctx.scale(dpr, dpr);
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    function hashStringToInt(str, mod = 1000) { 
-      let h = 0; for (let i = 0; i < str.length; i++) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; }
-      return Math.abs(h) % mod;
-    }
-    function seededRandomFloat(seed) { return hashStringToInt(seed, 10000) / 10000; }
-
-    function cloneParticles() { return initialParticles.map(p => ({ ...p })); }
-
-    function setAddonStyle(styleName) {
-      currentAddonStyle = styleName;
-      const style = ADDON_STYLES[styleName];
-      document.getElementById('styleIndicator').style.borderLeftColor = style.color;
-      document.getElementById('indicatorText').innerHTML = style.indicatorText;
-    }
-
-    async function connectWallet() {
-      if (!window.ethereum) return alert("Instalējiet MetaMask!");
-      provider = new ethers.BrowserProvider(window.ethereum);
-      await provider.send("eth_requestAccounts", []);
-      signer = await provider.getSigner();
-      account = await signer.getAddress();
-      
-      document.getElementById('accountDisplay').textContent = 'Account: ' + account;
-      const bal = await provider.getBalance(account);
-      ethBalance = Number(ethers.formatEther(bal));
-      
-      document.getElementById('renderBtn').disabled = false;
-      document.getElementById('recordBtn').disabled = false;
-      document.getElementById('generateNFTBtn').disabled = false;
-      
-      // Šeit parasti izsauc žetonu ielādi, bet pagaidām ielādējam tukšu sarakstu
-      initParticlesOnce();
-    }
-
-    function initParticlesOnce() {
-      initialParticles = [];
-      const particleCount = 150; 
-      const seedBase = account + ethBalance;
-
-      for (let i = 0; i < particleCount; i++) {
-        const seed = seedBase + i;
-        initialParticles.push({
-          radius: 100 + seededRandomFloat(seed + "r") * 400,
-          angle: seededRandomFloat(seed + "a") * Math.PI * 2,
-          speed: 0.002 + seededRandomFloat(seed + "s") * 0.008,
-          r: 2 + seededRandomFloat(seed + "size") * 5,
-          hue: 200, baseSat: 70, baseLight: 60
-        });
-      }
-      particles = cloneParticles();
-      if (animRequest) cancelAnimationFrame(animRequest);
-      animate();
-    }
-
-    function animate() {
-      frameCount++;
-      const W = 1920, H = 1080;
-      const cx0 = W / 2, cy0 = H / 2;
-      const style = ADDON_STYLES[currentAddonStyle];
-
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      ctx.fillRect(0, 0, W, H);
-
-      style.drawExtraEffects(ctx, W, H, frameCount, particles, cx0, cy0);
-
-      particles.forEach((p, i) => {
-        p.angle += p.speed;
-        const x = cx0 + Math.cos(p.angle) * p.radius;
-        const y = cy0 + Math.sin(p.angle) * p.radius;
-        
-        const c = style.particleColorModifier(p.hue, p.baseSat, p.baseLight, i, frameCount);
-        
-        ctx.beginPath();
-        ctx.arc(x, y, p.r, 0, Math.PI * 2);
-        
-        if (currentAddonStyle === 'galaxy') {
-          ctx.shadowBlur = 15; ctx.shadowColor = `hsla(${c.hue}, ${c.sat}%, ${c.light}%, 0.8)`;
-        } else { ctx.shadowBlur = 0; }
-
-        ctx.fillStyle = `hsla(${c.hue}, ${c.sat}%, ${c.light}%, 0.9)`;
-        ctx.fill();
-
-        // Līnijas
-        if (i % 8 === 0) {
-          const next = particles[(i+1)%particles.length];
-          const nx = cx0 + Math.cos(next.angle)*next.radius;
-          const ny = cy0 + Math.sin(next.angle)*next.radius;
-          if (Math.hypot(x-nx, y-ny) < 150) {
-            const conn = style.connectionColorModifier(c.hue, c.sat, c.light, 0.2);
-            ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(nx,ny);
-            ctx.strokeStyle = `hsla(${conn.hue}, ${conn.sat}%, ${conn.light}%, ${conn.alpha})`;
-            ctx.stroke();
-          }
-        }
+  // --- VIZUALIZĀCIJAS LOĢIKA ---
+  function initParticles() {
+    particles = [];
+    for(let i=0; i<150; i++) {
+      particles.push({
+        r: Math.random() * 400 + 100,
+        a: Math.random() * Math.PI * 2,
+        s: Math.random() * 0.005 + 0.002,
+        size: Math.random() * 3 + 1
       });
-      animRequest = requestAnimationFrame(animate);
     }
+  }
 
-    /** --- NOTIKUMI --- **/
-    document.getElementById('connectBtn').onclick = connectWallet;
+  function animate() {
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.fillRect(0,0,1920,1080);
     
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        setAddonStyle(btn.dataset.theme);
-      };
-    });
-
-    document.getElementById('fullscreenIcon').onclick = () => {
-      if (!document.fullscreenElement) canvas.requestFullscreen();
-      else document.exitFullscreen();
-    };
-
-    // NFT Minting funkcija (pamatā)
-    document.getElementById('generateNFTBtn').onclick = async () => {
-      const btn = document.getElementById('generateNFTBtn');
-      btn.classList.add('loading');
-      try {
-        const tokenId = Math.floor(Date.now() / 1000);
-        const metadataURI = "ipfs://placeholder"; // Šeit jābūt īstajam IPFS CID
-        const contract = new ethers.Contract(MANIFOLD_CONTRACT_ADDRESS, MANIFOLD_ABI, signer);
-        
-        const tx = await contract.mint(account, tokenId, metadataURI, { 
-          value: ethers.parseEther("0.01") 
-        });
-        await tx.wait();
-        alert("Success! NFT Minted.");
-      } catch (e) {
-        alert("Error: " + e.message);
-      } finally {
-        btn.classList.remove('loading');
+    particles.forEach(p => {
+      p.a += p.s;
+      const x = 960 + Math.cos(p.a) * p.r;
+      const y = 540 + Math.sin(p.a) * p.r;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, p.size, 0, Math.PI*2);
+      
+      if(currentStyle === 'galaxy') {
+        ctx.fillStyle = '#c026ff';
+        ctx.shadowBlur = 10; ctx.shadowColor = '#c026ff';
+      } else if(currentStyle === 'fire') {
+        ctx.fillStyle = '#ff4400';
+      } else {
+        ctx.fillStyle = '#0ff';
       }
-    };
-  </script>
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    animRequest = requestAnimationFrame(animate);
+  }
+
+  function changeStyle(s) {
+    currentStyle = s;
+    document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+
+  // --- DROŠA MINTĒŠANAS PLŪSMA ---
+  async function startMintProcess() {
+    const mintBtn = document.getElementById('mintBtn');
+    mintBtn.disabled = true;
+    statusMsg.innerText = "Sagatavo bildi un augšupielādē serverī...";
+
+    try {
+      // 1. Snapshot no Canvas
+      const imageData = canvas.toDataURL('image/png');
+
+      // 2. Sūtam uz Backend (Tavs API)
+      const response = await fetch('/api/prepare-nft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image: imageData,
+          address: account,
+          style: currentStyle
+        })
+      });
+
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error);
+
+      statusMsg.innerText = "IPFS gatavs. Apstiprini darījumu makā...";
+
+      // 3. Īstais Mint izsaukums ar datiem, ko iedeva serveris
+      const contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+      const tx = await contract.mint(account, Date.now(), data.uri, {
+        value: ethers.parseEther("0.01")
+      });
+
+      statusMsg.innerText = "Darījums nosūtīts! Gaidām blokķēdi...";
+      await tx.wait();
+      statusMsg.innerText = "Apsveicam! NFT ir veiksmīgi izkalts.";
+
+    } catch (err) {
+      console.error(err);
+      statusMsg.innerText = "Kļūda: " + err.message;
+      mintBtn.disabled = false;
+    }
+  }
+
+  // --- CONNECT ---
+  document.getElementById('connectBtn').onclick = async () => {
+    if(!window.ethereum) return alert("Instalē MetaMask!");
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
+    document.getElementById('connectBtn').innerText = account.slice(0,6) + "...";
+    document.getElementById('mintBtn').disabled = false;
+    initParticles();
+    animate();
+    statusMsg.innerText = "Maks pieslēgts. Izvēlies stilu un spied Mint!";
+  };
+
+  document.getElementById('mintBtn').onclick = startMintProcess;
+</script>
 </body>
 </html>

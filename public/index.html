@@ -3,207 +3,393 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dynamic Wallet Visualizer — Manifold NFT Generator</title>
-
+  <title>Wallet Visualizer — NFT Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
-
   <style>
-    /* ATPAKAĻ TAVS ORIĢINĀLAIS STILS */
-    body { font-family:'Inter',Arial,sans-serif; background:#000; color:#fff; margin:0; padding:20px; position: relative; overflow-x: hidden; }
-    .container { max-width:1400px; margin:auto; display:flex; flex-direction:column; align-items:center; gap:12px; }
-    h1 { font-size:24px; margin:0; line-height:1; background:linear-gradient(90deg,#ffffff,#aaaaaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center; }
-    .subtitle { margin-top:4px; color:#9fb0c3; font-size:18px; text-align:center; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #000; color: #fff; min-height: 100vh; padding: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 20px; }
+    h1 { font-size: 24px; background: linear-gradient(90deg, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: #6b7280; font-size: 14px; margin-top: 5px; }
     
-    .theme-selector { display: flex; gap: 12px; justify-content: center; margin: 10px 0; flex-wrap: wrap; }
-    .theme-btn { padding: 8px 16px; border-radius: 20px; border: 2px solid; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s ease; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
-    .theme-btn.active { background: rgba(255,255,255,0.2); box-shadow: 0 0 15px currentColor; }
+    /* Toast notifications */
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; border-left: 4px solid; padding: 12px 20px; border-radius: 8px; z-index: 1000; transform: translateX(400px); transition: transform 0.3s ease; }
+    .toast.show { transform: translateX(0); }
+    .toast.success { border-left-color: #10b981; }
+    .toast.error { border-left-color: #ef4444; }
+    .toast.info { border-left-color: #3b82f6; }
     
-    /* Tavām krāsām atbilstošie stili */
+    /* Wallet badge */
+    .wallet-badge { position: fixed; top: 20px; right: 20px; background: #1f2937; padding: 8px 16px; border-radius: 40px; font-size: 12px; display: flex; align-items: center; gap: 8px; z-index: 100; }
+    .wallet-dot { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; }
+    .wallet-dot.connected { background: #10b981; }
+    
+    .controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+    button { padding: 12px 24px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; transition: all 0.2s; background: linear-gradient(90deg, #4a90e2, #9013fe); color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+    button:hover:not(:disabled) { transform: translateY(-2px); }
+    .btn-mint { background: linear-gradient(135deg, #fff, #e8f4f0); color: #000; }
+    
+    .theme-selector { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+    .theme-btn { padding: 6px 14px; border-radius: 20px; border: 2px solid; background: rgba(0,0,0,0.5); font-size: 12px; cursor: pointer; transition: all 0.2s; }
+    .theme-btn.active { background: rgba(255,255,255,0.2); transform: scale(1.02); }
     .theme-classic { border-color: #0ff; color: #0ff; }
-    .theme-forest { border-color: #0f0; color: #0f0; }
-    .theme-ocean { border-color: #00f; color: #00f; }
-    .theme-sunset { border-color: #ff6600; color: #ff6600; }
     .theme-galaxy { border-color: #c026ff; color: #c026ff; }
-    .theme-rainbow { border-color: #ff00ff; color: #ff00ff; }
-    .theme-fire { border-color: #ff4400; color: #ff4400; }
     
-    .active-style-indicator { position: fixed; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); padding: 8px 16px; border-radius: 30px; font-size: 14px; z-index: 100; border-left: 4px solid; pointer-events: none; }
+    .canvas-container { background: #000; border-radius: 16px; padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+    canvas { width: 100%; border-radius: 12px; display: block; }
     
-    .controls { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-    button { padding:12px 20px; border-radius:12px; border:none; cursor:pointer; background:linear-gradient(90deg,#4a90e2,#9013fe); color:#fff; font-weight:700; font-size:16px; box-shadow:0 6px 18px rgba(0,0,0,0.45); }
-    button:disabled { background:#444; opacity:0.5; }
-    
-    .snapshot-container { width:100%; background:#000; border-radius:14px; padding:18px; position:relative; overflow: hidden; }
-    #snapshotCanvas { width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background: #000; }
-    #statusMsg { font-weight:600; font-size:16px; color:#fff; text-align:center; margin: 10px 0; }
-    
-    .logo { width: 160px; height: 40px; margin-bottom: 10px; }
+    .status { text-align: center; margin-top: 15px; color: #0ff; font-size: 14px; }
+    .progress-bar { width: 100%; height: 4px; background: #333; border-radius: 2px; margin-top: 10px; overflow: hidden; display: none; }
+    .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #0ff, #4a90e2); transition: width 0.3s; }
   </style>
 </head>
-
 <body>
   <div class="container">
-    <header style="text-align:center;">
-       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 158.75 37.04" class="logo">
-         <text x="8.8" y="31.5" style="font-size:14.1px; font-family:'DejaVu Sans Mono'; fill:#ffffff;">V I R S B U R T S</text>
-         <rect width="3.1" height="15" x="5.9" y="3.8" style="fill:#ffffff;" />
-       </svg>
-       <h1>Dynamic Wallet Visualizer</h1>
-       <p class="subtitle">Watch your Ethereum assets come alive</p>
-    </header>
+    <div class="header">
+      <h1>Dynamic Wallet Visualizer</h1>
+      <p class="subtitle">Create NFT from your wallet visualization</p>
+    </div>
 
-    <div class="theme-selector">
-      <button class="theme-btn theme-classic active" onclick="setTheme('classic')">⭐ CLASSIC</button>
-      <button class="theme-btn theme-forest" onclick="setTheme('forest')">🌲 FOREST</button>
-      <button class="theme-btn theme-ocean" onclick="setTheme('ocean')">🌊 OCEAN</button>
-      <button class="theme-btn theme-sunset" onclick="setTheme('sunset')">🌅 SUNSET</button>
-      <button class="theme-btn theme-galaxy" onclick="setTheme('galaxy')">✨ GALAXY</button>
-      <button class="theme-btn theme-rainbow" onclick="setTheme('rainbow')">🌈 RAINBOW</button>
-      <button class="theme-btn theme-fire" onclick="setTheme('fire')">🔥 FIRE</button>
+    <div class="wallet-badge" id="walletBadge">
+      <div class="wallet-dot" id="walletDot"></div>
+      <span id="walletAddress">Not connected</span>
+    </div>
+
+    <div class="theme-selector" id="themeSelector">
+      <button class="theme-btn theme-classic active" data-theme="classic">⭐ CLASSIC</button>
+      <button class="theme-btn theme-galaxy" data-theme="galaxy">✨ GALAXY</button>
     </div>
 
     <div class="controls">
       <button id="connectBtn">Connect Wallet</button>
-      <button id="mintBtn" disabled>Generate & Mint NFT</button>
+      <button id="renderBtn" disabled>Start Visualization</button>
+      <button id="recordBtn" disabled>Record 5s Video</button>
+      <button id="mintBtn" class="btn-mint" disabled>Mint NFT</button>
     </div>
 
-    <div id="statusMsg">Gaidu maka pieslēgšanu...</div>
-
-    <div class="snapshot-container">
-      <canvas id="snapshotCanvas" width="1920" height="1080"></canvas>
+    <div class="canvas-container">
+      <canvas id="canvas" width="1200" height="700"></canvas>
     </div>
+
+    <div class="status" id="statusMsg">Ready</div>
+    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
   </div>
 
-  <div id="styleIndicator" class="active-style-indicator" style="border-left-color: #0ff;">
-    <span id="indicatorText">⭐ CLASSIC MODE - Original visualization</span>
-  </div>
+  <div id="toast" class="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6/dist/ethers.umd.min.js"></script>
-
   <script>
-    /* --- TAVS ORIĢINĀLAIS DATU SETS UN MAINĪGIE --- */
+    // ============================================ //
+    // FRONTEND - TIKAI VIZUALIZĀCIJA UN INTERAKCIJA
+    // ============================================ //
+    
     let provider, signer, account;
-    let particles = [], initialParticles = [], animRequest = null, frameCount = 0;
-    let currentStyle = 'classic';
-    const canvas = document.getElementById('snapshotCanvas');
-    const ctx = canvas.getContext('2d');
-
-    // Tavs Manifold līgums
-    const MANIFOLD_ADDR = "0xdae7c3da53be220889abd6ab66372318fb5eb454";
-    const ABI = ["function mint(address to, uint256 id, string uri) external payable"];
-
-    const STYLES = {
-      classic: { color: '#0ff', txt: '⭐ CLASSIC MODE - Original visualization' },
-      forest: { color: '#0f0', txt: '🌲 FOREST MODE - Green glow effect active' },
-      ocean: { color: '#00f', txt: '🌊 OCEAN MODE - Wave animations active' },
-      sunset: { color: '#ff6600', txt: '🌅 SUNSET MODE - Warm fire glow active' },
-      galaxy: { color: '#c026ff', txt: '✨ GALAXY MODE - Sparkle stars active' },
-      rainbow: { color: '#ff00ff', txt: '🌈 RAINBOW MODE - Color pulse active' },
-      fire: { color: '#ff4400', txt: '🔥 FIRE MODE - Fire trail effects active' }
-    };
-
-    /* --- TAVA ORIĢINĀLĀ LOGA UN DAĻIŅU LOĢIKA --- */
-    function initParticlesOnce() {
-      initialParticles = [];
-      for (let i = 0; i < 200; i++) {
-        initialParticles.push({
-          radius: 100 + Math.random() * 400,
-          angle: Math.random() * Math.PI * 2,
-          speed: 0.002 + Math.random() * 0.008,
-          r: 2 + Math.random() * 4,
-          hue: 200
-        });
-      }
-      particles = initialParticles.map(p => ({ ...p }));
-      if (animRequest) cancelAnimationFrame(animRequest);
-      animate();
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d');
+    let particles = [];
+    let animationId = null;
+    let frameCount = 0;
+    let currentTheme = 'classic';
+    let recordedVideo = null;
+    let isRecording = false;
+    
+    // DOM elementi
+    const connectBtn = document.getElementById('connectBtn');
+    const renderBtn = document.getElementById('renderBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const mintBtn = document.getElementById('mintBtn');
+    const statusMsg = document.getElementById('statusMsg');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const walletAddressSpan = document.getElementById('walletAddress');
+    const walletDot = document.getElementById('walletDot');
+    const toast = document.getElementById('toast');
+    
+    // ========== TOAST NOTIFIKĀCIJAS ==========
+    function showToast(message, type = 'info') {
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => toast.classList.remove('show'), 3000);
     }
-
-    function animate() {
-      frameCount++;
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-      ctx.fillRect(0, 0, 1920, 1080);
-
-      particles.forEach((p, i) => {
-        p.angle += p.speed;
-        const x = 960 + Math.cos(p.angle) * p.radius;
-        const y = 540 + Math.sin(p.angle) * p.radius;
-
-        // Stilistiskās krāsu izmaiņas
-        if (currentStyle === 'rainbow') p.hue = (frameCount + i) % 360;
-        else if (currentStyle === 'forest') p.hue = 120;
-        else if (currentStyle === 'ocean') p.hue = 220;
-        else if (currentStyle === 'fire') p.hue = 15;
-        else if (currentStyle === 'galaxy') p.hue = 280;
-
-        ctx.beginPath();
-        ctx.arc(x, y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, 0.9)`;
-        
-        if(currentStyle === 'galaxy') {
-          ctx.shadowBlur = 10; ctx.shadowColor = `hsla(${p.hue}, 80%, 60%, 0.8)`;
-        } else { ctx.shadowBlur = 0; }
-        
-        ctx.fill();
-      });
-      animRequest = requestAnimationFrame(animate);
+    
+    // ========== PROGRESS BAR ==========
+    function setProgress(percent) {
+      progressFill.style.width = `${percent}%`;
     }
-
-    function setTheme(s) {
-      currentStyle = s;
-      document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      document.getElementById('styleIndicator').style.borderLeftColor = STYLES[s].color;
-      document.getElementById('indicatorText').innerText = STYLES[s].txt;
+    
+    function showProgress() {
+      progressBar.style.display = 'block';
+      setProgress(0);
     }
-
-    /* --- SAVIENOJUMS UN MINT (UZLABOTS, BET TAVS) --- */
-    async function connect() {
-      if (!window.ethereum) return alert("Instalē MetaMask!");
-      provider = new ethers.BrowserProvider(window.ethereum);
-      signer = await provider.getSigner();
-      account = await signer.getAddress();
-      document.getElementById('connectBtn').innerText = "Connected: " + account.slice(0,6);
-      document.getElementById('mintBtn').disabled = false;
-      initParticlesOnce();
+    
+    function hideProgress() {
+      setTimeout(() => {
+        progressBar.style.display = 'none';
+        setProgress(0);
+      }, 500);
     }
-
-    async function mintNFT() {
-      const btn = document.getElementById('mintBtn');
-      const status = document.getElementById('statusMsg');
-      btn.disabled = true;
-      status.innerText = "Gatavoju IPFS datus caur API...";
-
+    
+    // ========== WALLET SAVIENOŠANA ==========
+    async function connectWallet() {
       try {
-        const image = canvas.toDataURL('image/png');
+        if (!window.ethereum) {
+          showToast('Please install MetaMask!', 'error');
+          return;
+        }
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send('eth_requestAccounts', []);
+        signer = await provider.getSigner();
+        account = await signer.getAddress();
         
-        // ŠEIT NOTIEK TAVA KRITIKA - DROŠS BACKEND IZSaukums
-        const response = await fetch('/api/prepare-nft', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image, address: account, style: currentStyle })
-        });
+        // Pārbauda tīklu
+        const network = await provider.getNetwork();
+        if (network.chainId !== 11155111n) {
+          showToast('Please switch to Sepolia network', 'error');
+          return;
+        }
         
-        const data = await response.json();
-        if(!data.uri) throw new Error("Serveris neatgrieza IPFS saiti");
-
-        status.innerText = "IPFS Gatavs! Apstiprini mintošanu makā...";
-
-        const contract = new ethers.Contract(MANIFOLD_ADDR, ABI, signer);
-        const tx = await contract.mint(account, Date.now(), data.uri, {
-          value: ethers.parseEther("0.01")
-        });
-
-        await tx.wait();
-        status.innerText = "NFT veiksmīgi izkalts!";
-      } catch (e) {
-        status.innerText = "Kļūda: " + e.message;
-        btn.disabled = false;
+        walletAddressSpan.textContent = `${account.slice(0, 6)}...${account.slice(-4)}`;
+        walletDot.classList.add('connected');
+        renderBtn.disabled = false;
+        showToast('Wallet connected!', 'success');
+        statusMsg.textContent = 'Wallet connected';
+      } catch (error) {
+        showToast(error.message, 'error');
       }
     }
-
-    document.getElementById('connectBtn').onclick = connect;
-    document.getElementById('mintBtn').onclick = mintNFT;
+    
+    // ========== VIZUALIZĀCIJA (OPTIMIZĒTA) ==========
+    const THEMES = {
+      classic: { hueOffset: 200, saturation: 80, lightness: 65 },
+      galaxy: { hueOffset: 280, saturation: 85, lightness: 70 }
+    };
+    
+    function generateParticles(count = 80) {
+      particles = [];
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          angle: Math.random() * Math.PI * 2,
+          radius: 50 + Math.random() * 400,
+          speed: 0.002 + Math.random() * 0.008,
+          size: 3 + Math.random() * 4,
+          hue: Math.random() * 360
+        });
+      }
+    }
+    
+    function draw() {
+      if (!ctx) return;
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, w, h);
+      
+      const theme = THEMES[currentTheme];
+      
+      // Optimizēta zīmēšana ar distance pruning
+      for (let i = 0; i < particles.length; i++) {
+        const p1 = particles[i];
+        p1.angle += p1.speed;
+        const x1 = cx + Math.cos(p1.angle) * p1.radius;
+        const y1 = cy + Math.sin(p1.angle) * p1.radius;
+        
+        // Savienojumi tikai tuvām daļiņām
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const x2 = cx + Math.cos(p2.angle) * p2.radius;
+          const y2 = cy + Math.sin(p2.angle) * p2.radius;
+          const dx = x1 - x2;
+          const dy = y1 - y2;
+          
+          // Distance pruning - ja par tālu, skip
+          if (Math.abs(dx) > 120 || Math.abs(dy) > 120) continue;
+          
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            const alpha = 0.15 * (1 - dist / 100);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = `hsla(${(p1.hue + p2.hue) / 2}, ${theme.saturation}%, ${theme.lightness}%, ${alpha})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+        
+        // Zīmē daļiņu
+        const hue = (p1.hue + theme.hueOffset) % 360;
+        ctx.fillStyle = `hsla(${hue}, ${theme.saturation}%, ${theme.lightness + 10}%, 0.9)`;
+        ctx.beginPath();
+        ctx.arc(x1, y1, p1.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      frameCount++;
+      animationId = requestAnimationFrame(draw);
+    }
+    
+    function startVisualization() {
+      if (animationId) cancelAnimationFrame(animationId);
+      generateParticles(80);
+      draw();
+      statusMsg.textContent = 'Visualization running';
+      recordBtn.disabled = false;
+      showToast('Visualization started', 'success');
+    }
+    
+    // ========== VIDEO IERAKSTĪŠANA (5 sek) ==========
+    async function recordVideo() {
+      if (isRecording) return;
+      isRecording = true;
+      
+      const stream = canvas.captureStream(30);
+      let mimeType = 'video/webm';
+      if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
+      
+      const recorder = new MediaRecorder(stream, { mimeType });
+      const chunks = [];
+      
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = () => {
+        recordedVideo = new Blob(chunks, { type: mimeType });
+        statusMsg.textContent = 'Video ready!';
+        mintBtn.disabled = false;
+        showToast('Video recorded! Ready to mint', 'success');
+        isRecording = false;
+      };
+      
+      recorder.start();
+      statusMsg.textContent = 'Recording 5 seconds...';
+      showProgress();
+      
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 20;
+        setProgress(progress);
+      }, 1000);
+      
+      setTimeout(() => {
+        recorder.stop();
+        clearInterval(interval);
+        hideProgress();
+      }, 5000);
+    }
+    
+    // ========== MINT NFT (IZMANTO BACKEND API) ==========
+    async function mintNFT() {
+      if (!recordedVideo) {
+        showToast('Please record video first', 'error');
+        return;
+      }
+      
+      mintBtn.disabled = true;
+      showProgress();
+      setProgress(10);
+      statusMsg.textContent = 'Capturing image...';
+      
+      // 1. Uzņem attēlu no canvas
+      const imgBlob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.9));
+      setProgress(20);
+      
+      statusMsg.textContent = 'Uploading image to IPFS...';
+      
+      // 2. Augšupielādē attēlu
+      const imgFormData = new FormData();
+      imgFormData.append('file', imgBlob, 'snapshot.jpg');
+      const imgRes = await fetch('/api/upload-to-ipfs', { method: 'POST', body: imgFormData });
+      const imgData = await imgRes.json();
+      setProgress(40);
+      
+      statusMsg.textContent = 'Uploading video to IPFS...';
+      
+      // 3. Augšupielādē video
+      const videoFormData = new FormData();
+      videoFormData.append('file', recordedVideo, 'video.webm');
+      const videoRes = await fetch('/api/upload-to-ipfs', { method: 'POST', body: videoFormData });
+      const videoData = await videoRes.json();
+      setProgress(60);
+      
+      statusMsg.textContent = 'Generating metadata...';
+      
+      // 4. Ģenerē metadatus caur backend
+      const metaRes = await fetch('/api/generate-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: account,
+          imageIpfs: imgData.ipfs,
+          videoIpfs: videoData.ipfs,
+          theme: currentTheme,
+          ethBalance: await provider.getBalance(account).then(b => ethers.formatEther(b))
+        })
+      });
+      const metaData = await metaRes.json();
+      setProgress(80);
+      
+      statusMsg.textContent = 'Minting NFT...';
+      
+      // 5. Mint NFT caur backend ar signature
+      const mintRes = await fetch('/api/mint-nft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: account,
+          metadataUri: metaData.ipfs
+        })
+      });
+      
+      const mintResult = await mintRes.json();
+      setProgress(100);
+      
+      if (mintResult.success) {
+        statusMsg.textContent = 'NFT minted successfully!';
+        showToast(`✅ NFT minted! Tx: ${mintResult.transaction.slice(0, 10)}...`, 'success');
+      } else {
+        throw new Error(mintResult.error);
+      }
+      
+      hideProgress();
+      mintBtn.disabled = false;
+    }
+    
+    // ========== TĒMU MAIŅA ==========
+    function setTheme(theme) {
+      currentTheme = theme;
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.theme === theme) btn.classList.add('active');
+      });
+      if (animationId) {
+        startVisualization();
+      }
+    }
+    
+    // ========== EVENT LISTENERS ==========
+    connectBtn.addEventListener('click', connectWallet);
+    renderBtn.addEventListener('click', startVisualization);
+    recordBtn.addEventListener('click', recordVideo);
+    mintBtn.addEventListener('click', mintNFT);
+    
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+    });
+    
+    // Canvas resize
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = 1200;
+      canvas.height = 700;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    showToast('Connect your wallet to start', 'info');
   </script>
 </body>
 </html>
